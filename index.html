@@ -1,243 +1,44 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>猜数字游戏</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f0f0f0;
-        }
-
-        #game-container {
-            background-color: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-
-        input, button {
-            margin: 5px;
-            padding: 5px;
-        }
-
-        #history-a, #history-b {
-            margin-top: 10px;
-        }
-    </style>
+    <title>Guess Number Game</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div id="game-container">
-        <h1>猜数字游戏</h1>
+        <h1>Guess Number Game</h1>
         <div id="room-section">
-            <button id="create-room">创建房间</button>
-            <input type="text" id="room-id" placeholder="输入房间ID">
-            <button id="join-room">加入房间</button>
+            <button id="create-room">Create Room</button>
+            <input type="text" id="room-id" placeholder="Enter Room ID">
+            <button id="join-room">Join Room</button>
         </div>
         <div id="game-section" style="display: none;">
             <div id="player-a-section">
-                <h2>玩家 A</h2>
-                <input type="number" id="digit-count" placeholder="输入位数 (2-9)">
-                <button id="set-digit">设置位数</button>
-                <input type="text" id="target-a" placeholder="设置你的目标数字">
-                <button id="set-target-a">设置目标</button>
-                <input type="text" id="guess-a" placeholder="猜测玩家 B 的数字">
-                <button id="submit-guess-a">提交猜测</button>
+                <h2>Player A</h2>
+                <input type="number" id="digit-count" placeholder="Enter digit count (2-9)">
+                <button id="set-digit">Set Digit Count</button>
+                <input type="text" id="target-a" placeholder="Set your target number">
+                <button id="set-target-a">Set Target</button>
+                <input type="text" id="guess-a" placeholder="Guess Player B's number">
+                <button id="submit-guess-a">Submit Guess</button>
                 <div id="history-a"></div>
             </div>
             <div id="player-b-section">
-                <h2>玩家 B</h2>
-                <input type="text" id="target-b" placeholder="设置你的目标数字">
-                <button id="set-target-b">设置目标</button>
-                <input type="text" id="guess-b" placeholder="猜测玩家 A 的数字">
-                <button id="submit-guess-b">提交猜测</button>
+                <h2>Player B</h2>
+                <input type="text" id="target-b" placeholder="Set your target number">
+                <button id="set-target-b">Set Target</button>
+                <input type="text" id="guess-b" placeholder="Guess Player A's number">
+                <button id="submit-guess-b">Submit Guess</button>
                 <div id="history-b"></div>
             </div>
             <div id="result"></div>
-            <button id="restart" style="display: none;">重新开始</button>
+            <button id="restart" style="display: none;">Restart Game</button>
         </div>
     </div>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
-        import { getDatabase, ref, set, onValue, push } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyBRarN_Rj0EBhVQXj92w2x3wVuORcNXBuA",
-            authDomain: "guess-number-game-a223f.firebaseapp.com",
-            projectId: "guess-number-game-a223f",
-            storageBucket: "guess-number-game-a223f.firebasestorage.app",
-            messagingSenderId: "996802770979",
-            appId: "1:996802770979:web:df1a401b5d92c85cdd1996"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-
-        let roomId = null;
-        let playerType = null; // 'A' 或 'B'
-        let digitCount = null;
-
-        document.getElementById('create-room').addEventListener('click', () => {
-            roomId = Math.floor(1000 + Math.random() * 9000).toString();
-            set(ref(db, 'rooms/' + roomId), {
-                digitCount: null,
-                targetA: null,
-                targetB: null,
-                guessesA: [],
-                guessesB: [],
-                winner: null
-            });
-            playerType = 'A';
-            document.getElementById('room-section').style.display = 'none';
-            document.getElementById('game-section').style.display = 'block';
-            document.getElementById('player-a-section').style.display = 'block';
-            document.getElementById('player-b-section').style.display = 'none';
-            alert('房间创建成功，ID: ' + roomId);
-        });
-
-        document.getElementById('join-room').addEventListener('click', () => {
-            roomId = document.getElementById('room-id').value;
-            const roomRef = ref(db, 'rooms/' + roomId);
-            onValue(roomRef, (snapshot) => {
-                if (snapshot.exists()) {
-                    playerType = 'B';
-                    document.getElementById('room-section').style.display = 'none';
-                    document.getElementById('game-section').style.display = 'block';
-                    document.getElementById('player-a-section').style.display = 'none';
-                    document.getElementById('player-b-section').style.display = 'block';
-                } else {
-                    alert('房间未找到');
-                }
-            }, { onlyOnce: true });
-        });
-
-        document.getElementById('set-digit').addEventListener('click', () => {
-            digitCount = parseInt(document.getElementById('digit-count').value);
-            if (digitCount >= 2 && digitCount <= 9) {
-                set(ref(db, 'rooms/' + roomId + '/digitCount'), digitCount);
-            } else {
-                alert('请输入2到9之间的位数');
-            }
-        });
-
-        document.getElementById('set-target-a').addEventListener('click', () => {
-            const target = document.getElementById('target-a').value;
-            if (target.length === digitCount && /^\d+$/.test(target)) {
-                set(ref(db, 'rooms/' + roomId + '/targetA'), target);
-            } else {
-                alert('请输入有效的 ' + digitCount + ' 位数字');
-            }
-        });
-
-        document.getElementById('set-target-b').addEventListener('click', () => {
-            const target = document.getElementById('target-b').value;
-            if (target.length === digitCount && /^\d+$/.test(target)) {
-                set(ref(db, 'rooms/' + roomId + '/targetB'), target);
-            } else {
-                alert('请输入有效的 ' + digitCount + ' 位数字');
-            }
-        });
-
-        document.getElementById('submit-guess-a').addEventListener('click', () => {
-            const guess = document.getElementById('guess-a').value;
-            if (guess.length === digitCount && /^\d+$/.test(guess)) {
-                const guessesRef = ref(db, 'rooms/' + roomId + '/guessesA');
-                push(guessesRef, guess);
-            } else {
-                alert('请输入有效的 ' + digitCount + ' 位数字');
-            }
-        });
-
-        document.getElementById('submit-guess-b').addEventListener('click', () => {
-            const guess = document.getElementById('guess-b').value;
-            if (guess.length === digitCount && /^\d+$/.test(guess)) {
-                const guessesRef = ref(db, 'rooms/' + roomId + '/guessesB');
-                push(guessesRef, guess);
-            } else {
-                alert('请输入有效的 ' + digitCount + ' 位数字');
-            }
-        });
-
-        function listenToRoom() {
-            const roomRef = ref(db, 'rooms/' + roomId);
-            onValue(roomRef, (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    digitCount = data.digitCount;
-                    if (playerType === 'A') {
-                        updateHistory('history-a', data.guessesA, data.targetB);
-                        if (data.targetB && data.guessesA) {
-                            checkWinner(data.guessesA, data.targetB, 'A');
-                        }
-                    } else {
-                        updateHistory('history-b', data.guessesB, data.targetA);
-                        if (data.targetA && data.guessesB) {
-                            checkWinner(data.guessesB, data.targetA, 'B');
-                        }
-                    }
-                    if (data.winner) {
-                        document.getElementById('result').innerText = `获胜者: 玩家 ${data.winner}\n玩家 A 的数字: ${data.targetA}\n玩家 B 的数字: ${data.targetB}`;
-                        document.getElementById('restart').style.display = 'block';
-                    }
-                }
-            });
-        }
-
-        function updateHistory(elementId, guesses, target) {
-            const historyDiv = document.getElementById(elementId);
-            historyDiv.innerHTML = '';
-            if (guesses && target) {
-                Object.values(guesses).forEach((guess) => {
-                    const hits = calculateHits(guess, target);
-                    const p = document.createElement('p');
-                    p.innerText = guess + ' -> ' + hits + ' 命中';
-                    historyDiv.appendChild(p);
-                });
-            }
-        }
-
-        function calculateHits(guess, target) {
-            let hits = 0;
-            for (let i = 0; i < digitCount; i++) {
-                if (guess[i] === target[i]) {
-                    hits++;
-                }
-            }
-            return hits;
-        }
-
-        function checkWinner(guesses, target, player) {
-            if (guesses && target) {
-                Object.values(guesses).forEach((guess) => {
-                    if (calculateHits(guess, target) === digitCount) {
-                        set(ref(db, 'rooms/' + roomId + '/winner'), player);
-                    }
-                });
-            }
-        }
-
-        document.getElementById('restart').addEventListener('click', () => {
-            set(ref(db, 'rooms/' + roomId), {
-                digitCount: null,
-                targetA: null,
-                targetB: null,
-                guessesA: [],
-                guessesB: [],
-                winner: null
-            });
-            document.getElementById('result').innerText = '';
-            document.getElementById('restart').style.display = 'none';
-        });
-
-        document.getElementById('create-room').addEventListener('click', listenToRoom, { once: true });
-        document.getElementById('join-room').addEventListener('click', listenToRoom, { once: true });
-    </script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
